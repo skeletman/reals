@@ -1,6 +1,4 @@
-{-# OPTIONS --cubical #-}
+{-# OPTIONS --cubical --warning=noNoEquivWhenSplitting #-}
 module Reals.Definitions.SecondOrderReals where
 
-open import Cubical.Core.Everything
-open import Algebra.Field
- 
+
