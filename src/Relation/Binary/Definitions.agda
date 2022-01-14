@@ -10,10 +10,7 @@ open BinaryRelation
     using ()
     renaming 
     (
-        isRefl to IsRefl;
-        isSym to IsSym;
-        isAntisym to IsAntisym;
-        isTrans to IsTrans
+        isRefl to IsRefl
     ) 
     public
 
@@ -21,8 +18,22 @@ private
     variable
         ℓ ℓ' : Level
 
+{-
+IsRefl : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
+IsRefl R = ∀ a → R a a
+-}
+
+IsSym : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
+IsSym R = ∀ {a b} → R a b → R b a
+
+IsAntisym : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
+IsAntisym R =  ∀ {a b} → R a b → R b a → a ≡ b
+
+IsTrans : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
+IsTrans R =  ∀ {a b c}  → R a b → R b c → R a c
+
 IsIrrefl : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
-IsIrrefl R = ∀ {a} → ¬(R a a)
+IsIrrefl R = ∀ a → ¬(R a a)
 
 IsCotrans : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
 IsCotrans R = ∀ {a b} → R a b → (∀ x → (R a x) ⊎ (R x b))
@@ -30,14 +41,17 @@ IsCotrans R = ∀ {a b} → R a b → (∀ x → (R a x) ⊎ (R x b))
 IsTight : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
 IsTight R = ∀ {a b} → ¬ (R a b) → a ≡ b
 
-IsCotight : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
-IsCotight R = ∀ {a b} → a ≡ b → ¬ (R a b) 
+IsTotal : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
+IsTotal R = ∀ a b → R a b ⊎ R b a
 
-Irrefl→Cotight : {A : Type ℓ} → {R : Rel A A ℓ'} → IsIrrefl R → IsCotight R
-Irrefl→Cotight {R = R} isIrrefl {a = a} a≡b  = transport (cong (λ x → ¬ R a x) a≡b) isIrrefl
+IsConnected : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
+IsConnected R = ∀ {a b} → ¬ (a ≡ b) → R a b ⊎ R b a 
 
-Cotight→Irrefl : {A : Type ℓ} → {R : Rel A A ℓ'} → IsCotight R → IsIrrefl R 
-Cotight→Irrefl isCotight  = isCotight refl
+IsConnectedProperly : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
+IsConnectedProperly R = ∀ a b → (R a b ⊎ R b a) ⊎ (a ≡ b)
+
+HasExcludedMiddle₂ : {A : Type ℓ} → (R : Rel A A ℓ') → Type (ℓ-max ℓ ℓ')
+HasExcludedMiddle₂ R = ∀ a b → (R a b) ⊎ (¬ R a b)
 
 IsDedekindComplete : ∀ (A : Type ℓ) (_≤_ : Rel A A ℓ') (ℓ'' : Level) → Type (ℓ-max (ℓ-max ℓ ℓ') (ℓ-suc ℓ''))
 IsDedekindComplete A _≤_ ℓ'' = (p : A → Type ℓ'') → ∃ A (λ m → ((x : A) → p x → x ≤ m )) → ∃ A (λ sup → ( ((x : A) → p x → x ≤ sup) × ((m x : A) → (p x → x ≤ m) → sup ≤ m) ) ) 
