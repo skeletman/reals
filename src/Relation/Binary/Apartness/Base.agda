@@ -18,8 +18,11 @@ record IsApartnessRel {A : Type ℓ} (R : Rel A A ℓ') : Type (ℓ-max ℓ ℓ'
         isIrrefl : IsIrrefl R
         isCotrans : IsCotrans R
 
+
 record IsTightApartnessRel {A : Type ℓ} (R : Rel A A ℓ') : Type (ℓ-max ℓ ℓ') where
     constructor istightapartnessrel
     field
         isApartnessRel : IsApartnessRel R
         isTight : IsTight R
+
+    open IsApartnessRel isApartnessRel public
