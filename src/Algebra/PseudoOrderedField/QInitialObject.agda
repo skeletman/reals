@@ -18,7 +18,8 @@ open import Cubical.HITs.Rationals.QuoQ
 open import Cubical.HITs.SetQuotients
     renaming
         (
-            rec to recQuo
+            rec to recQuo;
+            elim to indQuo
         )
 
 open import Cubical.Data.Int.MoreInts.QuoInt
@@ -39,9 +40,20 @@ open import Cubical.Data.Nat
             _·_ to _·ℕ_;
             elim to indℕ
         )
+open import Cubical.Data.Nat.Order
+    renaming
+        (
+            _<_ to _<ℕ_
+        )
 open import Cubical.Data.Sigma
 open import Cubical.Data.Sum
 open import Cubical.Data.Bool
+    hiding (_≟_)
+open import Cubical.Data.Empty
+    renaming
+        (
+            rec to rec⊥
+        )
 
 open import Cubical.Relation.Binary.Base
 open import Relation.Binary.Definitions
@@ -92,8 +104,32 @@ private
 ℕ→Fpreserves· {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_} pof a zero = trans (cong (λ x → ℕ→F 0f 1f _+_ x) (sym (0≡m·0 a))) (sym (zeroAbsorbsR (IsPseudoOrderedField.isRing pof) (indℕ 0f (λ n → _+_ 1f) a)))
 ℕ→Fpreserves· {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_} pof a (suc b) = trans (cong (λ x → ℕ→F 0f 1f _+_ x) (·-suc a b)) (trans (trans (trans (ℕ→Fpreserves+ pof a (a ·ℕ b)) (cong (λ x → indℕ 0f (λ n → _+_ 1f) a + x) (ℕ→Fpreserves· pof a b))) (cong (λ x → x + (indℕ 0f (λ n → _+_ 1f) a ∙ indℕ 0f (λ n → _+_ 1f) b)) (sym (IsPseudoOrderedField.·Rid pof (indℕ 0f (λ n → _+_ 1f) a))))) (sym (IsPseudoOrderedField.·Rdist+ pof (indℕ 0f (λ n → _+_ 1f) a) 1f (indℕ 0f (λ n → _+_ 1f) b))))
 
+ℕ→Fpreserves< : {F : Type ℓ} {_<_ : Rel F F ℓ'} {0f 1f : F} {_+_ _∙_ : F → F → F} { - : F → F} {/ : (x : F) → <→# _<_ x 0f → F} → IsPseudoOrderedField _<_ 0f 1f _+_ _∙_ (-) (/) → {a b : ℕ} → a <ℕ b → ℕ→F 0f 1f _+_ a < ℕ→F 0f 1f _+_ b
+ℕ→Fpreserves< {_<_ = _<_} {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_} pof {a} {b} a<b = transport (cong (λ x →  ℕ→F 0f 1f _+_ a < ℕ→F 0f 1f _+_ x) (snd a<b)) (lemma (fst a<b) a)
+    where
+    lemma : (a b : ℕ) → ℕ→F 0f 1f _+_ b < ℕ→F 0f 1f _+_ (a +ℕ (suc b))
+    lemma zero b = transport (cong (λ x → x < (1f + indℕ 0f (λ _ → _+_ 1f) b)) (IsPseudoOrderedField.+Lid pof (ℕ→F 0f 1f _+_ b))) (addIsOrderCompatible pof (0<1 pof) (ℕ→F 0f 1f _+_ b))
+    lemma (suc a) b = IsPseudoOrderedField.<isTrans pof (lemma a b) (transport (cong (λ x → x < (1f + indℕ 0f (λ _ → _+_ 1f) (a +ℕ suc b))) (IsPseudoOrderedField.+Lid pof (ℕ→F 0f 1f _+_ (a +ℕ suc b)))) (addIsOrderCompatible pof (0<1 pof) (ℕ→F 0f 1f _+_ (a +ℕ suc b))))
+
+ℕ→Finj : {F : Type ℓ} {_<_ : Rel F F ℓ'} {0f 1f : F} {_+_ _∙_ : F → F → F} { - : F → F} {/ : (x : F) → <→# _<_ x 0f → F} → IsPseudoOrderedField _<_ 0f 1f _+_ _∙_ (-) (/) → ∀ {a b} → ℕ→F 0f 1f _+_ a ≡ ℕ→F 0f 1f _+_ b → a ≡ b
+ℕ→Finj {_<_ = _<_} {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_} pof {a} {b} = lemma (a ≟ b)
+    where
+    lemma : ∀ {m n} → Trichotomy m n → ℕ→F 0f 1f _+_ m ≡ ℕ→F 0f 1f _+_ n → m ≡ n
+    lemma {m} {n} (lt m<n) fa≡fb = rec⊥ (IsPseudoOrderedField.<isIrrefl pof (ℕ→F 0f 1f _+_ m) (transport (cong (λ x → ℕ→F 0f 1f _+_ m < x) (sym fa≡fb)) (ℕ→Fpreserves<  pof m<n)))
+    lemma {m} {n} (eq m≡n) fa≡fb = m≡n
+    lemma {m} {n} (gt n<m) fa≡fb = rec⊥ (IsPseudoOrderedField.<isIrrefl pof (ℕ→F 0f 1f _+_ m) (transport (cong (λ x → x < ℕ→F 0f 1f _+_ m) (sym fa≡fb)) (ℕ→Fpreserves< pof n<m)))
+
+
 ℤ→F : ∀ {F : Type ℓ} (0f 1f : F) (_+_  : F → F → F) (- : F → F) → ℤ → F
 ℤ→F 0f 1f _+_ - a = recℤ (ℕ→F 0f 1f _+_) (-ℕ→F 0f 1f _+_ -) refl a
+
+ℤ→Finj : {F : Type ℓ} {_<_ : Rel F F ℓ'} {0f 1f : F} {_+_ _∙_ : F → F → F} { - : F → F} {/ : (x : F) → <→# _<_ x 0f → F} → IsPseudoOrderedField _<_ 0f 1f _+_ _∙_ (-) (/) → ∀ {a b} → ℤ→F 0f 1f _+_ - a ≡ ℤ→F 0f 1f _+_ - b → a ≡ b
+ℤ→Finj {_<_ = _<_} {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_} { - = - } pof {a} {b} = altIndℤ (λ m → (ℤ→F 0f 1f _+_ - m ≡ ℤ→F 0f 1f _+_ - b → m ≡ b)) (λ m → altIndℤ (λ n → (ℤ→F 0f 1f _+_ - (pos m) ≡ ℤ→F 0f 1f _+_ - n → (pos m) ≡ n)) (λ n → λ fm≡fn → cong pos (ℕ→Finj pof fm≡fn)) (λ n → λ fm≡f[-n] → rec⊥ (IsPseudoOrderedField.<isIrrefl pof (ℤ→F 0f 1f _+_ - (pos m)) (transport (cong (λ x → x < ℤ→F 0f 1f _+_ - (pos m)) (sym fm≡f[-n])) (lemma m n)))) b) (λ m → altIndℤ (λ n → (ℤ→F 0f 1f _+_ - (neg (ℕ₊₁→ℕ m)) ≡ ℤ→F 0f 1f _+_ - n → (neg (ℕ₊₁→ℕ m)) ≡ n)) (λ n f[-m]≡fn → rec⊥ (IsPseudoOrderedField.<isIrrefl pof (ℤ→F 0f 1f _+_ - (pos n)) (transport (cong (λ x → x < ℤ→F 0f 1f _+_ - (pos n)) f[-m]≡fn) (lemma n m)))) (λ n f[-m]≡f[-n] → cong neg (ℕ→Finj pof (transport (cong₂ (λ x y → x ≡ y) (-[-x]≡x (IsPseudoOrderedField.+IsGroup pof) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ m))) (-[-x]≡x (IsPseudoOrderedField.+IsGroup pof) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ n)))) (cong - (transport (cong₂ (λ x y →  x ≡ y) (-ℕ→F≡-[ℕ→F] pof (ℕ₊₁→ℕ m)) (-ℕ→F≡-[ℕ→F] pof (ℕ₊₁→ℕ n))) f[-m]≡f[-n]))))) b) a
+    where
+    lemma : (m : ℕ) → (n : ℕ₊₁) → ℤ→F 0f 1f _+_ - (neg (ℕ₊₁→ℕ n)) < ℤ→F 0f 1f _+_ - (pos m)
+    lemma zero one = transport (cong (λ x → x < 0f) (sym (IsPseudoOrderedField.+Rid pof (- 1f)))) (-1<0 pof)
+    lemma zero (2+ n) = IsPseudoOrderedField.<isTrans pof (transport (cong (λ x → ℤ→F 0f 1f _+_ - (neg (ℕ₊₁→ℕ (2+ n))) < x) (IsPseudoOrderedField.+Lid pof (ℤ→F 0f 1f _+_ - (neg (ℕ₊₁→ℕ (1+ n))))))  (addIsOrderCompatible pof (-1<0 pof) (- 1f + indℕ 0f (λ n → _+_ (- 1f)) n))) (lemma zero (1+ n))
+    lemma (suc m) n = IsPseudoOrderedField.<isTrans pof (lemma m n) (transport (cong (λ x → x < (1f + (ℤ→F 0f 1f _+_ - (pos m)))) (IsPseudoOrderedField.+Lid pof (ℤ→F 0f 1f _+_ - (pos m)))) (addIsOrderCompatible pof (0<1 pof) (ℤ→F 0f 1f _+_ - (pos m))))
 
 ℤ→Fpreserves· :  {F : Type ℓ} {_<_ : Rel F F ℓ'} {0f 1f : F} {_+_ _∙_ : F → F → F} { - : F → F} {/ : (x : F) → <→# _<_ x 0f → F} → IsPseudoOrderedField _<_ 0f 1f _+_ _∙_ (-) (/) → (a b : ℤ) → ℤ→F 0f 1f _+_ - (a ·ℤ b) ≡ (ℤ→F 0f 1f _+_ - a) ∙ (ℤ→F 0f 1f _+_ - b)
 ℤ→Fpreserves· {_<_ = _<_} {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_} { - = - } {/ = /} pof a b = 
@@ -187,5 +223,19 @@ n+1#0 {_<_ = _<_} {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_} { - = - } {/ =
 ℚ→FwellDefined :  ∀ {F : Type ℓ} {_<_ : Rel F F ℓ'} {0f 1f : F} {_+_ _∙_ : F → F → F} { - : F → F} {/ : (x : F) → <→# _<_ x 0f → F} → (pof : IsPseudoOrderedField _<_ 0f 1f _+_ _∙_ (-) (/)) → (a b : ℚ') → a ∼ b → ℚ'→F pof a ≡ ℚ'→F pof b
 ℚ→FwellDefined {_<_ = _<_} {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_} { - = - } {/ = /} pof (numa , dena) (numb , denb) a∼b = transport (cong₂ (λ x y → x ≡ y) (trans ((sym (IsPseudoOrderedField.·Assoc pof (ℤ→F 0f 1f _+_ - (numa ·ℤ ℕ₊₁→ℤ denb)) (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena)) (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb))))) (trans ((cong (λ a → ℤ→F 0f 1f _+_ - (numa ·ℤ ℕ₊₁→ℤ denb) ∙ a) (IsPseudoOrderedField.·Comm pof (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena)) (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb))))) (trans (IsPseudoOrderedField.·Assoc pof (ℤ→F 0f 1f _+_ - (numa ·ℤ ℕ₊₁→ℤ denb)) (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb)) (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena))) (cong (λ x → x ∙ / (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena)) (trans (trans (trans (cong (λ x → x ∙ / (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb)) (ℤ→Fpreserves· pof numa (ℕ₊₁→ℤ denb))) (sym (IsPseudoOrderedField.·Assoc pof (ℤ→F 0f 1f _+_ - numa) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb))))) (cong (λ x → (ℤ→F 0f 1f _+_ - numa) ∙ x) (IsPseudoOrderedField.divIsPartialInverseToMult pof (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb)))) (IsPseudoOrderedField.·Rid pof (ℤ→F 0f 1f _+_ - numa))))))) (cong (λ x → x ∙ / (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb)) (trans (trans (cong (λ x → x ∙ / (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena)) (ℤ→Fpreserves· pof numb (ℕ₊₁→ℤ dena))) (sym (IsPseudoOrderedField.·Assoc pof (ℤ→F 0f 1f _+_ - numb) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena))))) (trans (cong (λ x → (ℤ→F 0f 1f _+_ - numb) ∙ x)  (IsPseudoOrderedField.divIsPartialInverseToMult pof (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena))) (IsPseudoOrderedField.·Rid pof (ℤ→F 0f 1f _+_ - numb)))))) (cong (λ x → (x ∙ / (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena)) ∙ / (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb)) (cong (ℤ→F 0f 1f _+_ -) a∼b))
 
-ℚ→F : ∀ {ℓ} {ℓ'} {F : Type ℓ} {_<_ : Rel F F ℓ'} {0f 1f : F} {_+_ _∙_ : F → F → F} { - : F → F} {/ : (x : F) → <→# _<_ x 0f → F} → isSet F → IsPseudoOrderedField _<_ 0f 1f _+_ _∙_ (-) (/) → ℚ → F 
-ℚ→F {ℓ} {ℓ'} {F} {_<_} {0f} {1f} {_+_} {_∙_} { - } {/} isset pof = recQuo {R = _∼_} isset (ℚ'→F pof) (ℚ→FwellDefined pof)      
+ℚ→F : ∀ {ℓ} {ℓ'} {F : Type ℓ} {_<_ : Rel F F ℓ'} {0f 1f : F} {_+_ _∙_ : F → F → F} { - : F → F} {/ : (x : F) → <→# _<_ x 0f → F} → IsPseudoOrderedField _<_ 0f 1f _+_ _∙_ (-) (/) → ℚ → F 
+ℚ→F {ℓ} {ℓ'} {F} {_<_} {0f} {1f} {_+_} {_∙_} { - } {/} pof = recQuo {R = _∼_} (IsPseudoOrderedField.is-set pof) (ℚ'→F pof) (ℚ→FwellDefined pof)
+
+
+
+ℚ→Finj : {F : Type ℓ} {_<_ : Rel F F ℓ'} {0f 1f : F} {_+_ _∙_ : F → F → F} { - : F → F} {/ : (x : F) → <→# _<_ x 0f → F} → (pof : IsPseudoOrderedField _<_ 0f 1f _+_ _∙_ (-) (/)) → ∀ {x y : ℚ} → ℚ→F pof x ≡ ℚ→F pof y → x ≡ y
+ℚ→Finj {F = F} {_<_ = _<_} {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_} { - = - } {/ = /} pof {x} {y} fa≡fb =  (elimProp2 {P = λ x1 y1 → (x1 ≡ x → y1 ≡ y → x ≡ y)} (λ x₁ y₁ f g → funExt λ x₁≡x → funExt λ y₁≡y → isSetℚ x y (f x₁≡x y₁≡y) (g x₁≡x y₁≡y)) λ a b [a]≡x [b]≡y → trans (trans (sym [a]≡x) (eq/ a b (lemma a b (transport (cong₂ (λ x₁ y₁ → ℚ→F pof x₁ ≡ ℚ→F pof y₁) (sym [a]≡x) (sym [b]≡y)) fa≡fb)))) [b]≡y) x y refl refl
+    where 
+    lemma1 : ((numa , dena) (numb , denb) : ℚ') → ℚ'→F pof (numa , dena) ≡ ℚ'→F pof (numb , denb) → ((ℤ→F 0f 1f _+_ - numa) ∙ ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) ≡ ((ℤ→F 0f 1f _+_ - numb) ∙ ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena))
+    lemma1 (numa , dena) (numb , denb) fa≡fb = transport (cong₂ (λ x y → (x ∙ ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) ≡ (y ∙ ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena))) (trans (sym (IsPseudoOrderedField.·Assoc pof (ℤ→F 0f 1f _+_ - numa) (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)))) (trans (cong (λ x → (ℤ→F 0f 1f _+_ - numa ∙ x)) (trans (IsPseudoOrderedField.·Comm pof (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena))) (IsPseudoOrderedField.divIsPartialInverseToMult pof (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (n+1#0 pof dena)))) (IsPseudoOrderedField.·Rid pof (ℤ→F 0f 1f _+_ - numa)))) (trans (sym (IsPseudoOrderedField.·Assoc pof (ℤ→F 0f 1f _+_ - numb) (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)))) (trans (cong (λ x → (ℤ→F 0f 1f _+_ - numb ∙ x)) (trans (IsPseudoOrderedField.·Comm pof (/ (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb))) (IsPseudoOrderedField.divIsPartialInverseToMult pof (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (n+1#0 pof denb)))) (IsPseudoOrderedField.·Rid pof (ℤ→F 0f 1f _+_ - numb))))) (transport (cong₂ (λ x y → x ≡ y) (IsPseudoOrderedField.·Assoc pof (ℚ'→F pof (numa , dena)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb))) (IsPseudoOrderedField.·Assoc pof (ℚ'→F pof (numb , denb)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)))) (cong₂ (λ x y → x ∙ y) fa≡fb (IsPseudoOrderedField.·Comm pof (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)))))
+    lemma : (a b : ℚ') → ℚ'→F pof a ≡ ℚ'→F pof b → a ∼ b
+    lemma a b fa≡fb = ℤ→Finj pof (transport (cong₂ (λ x y → x ≡ y) (sym (ℤ→Fpreserves· pof (fst a) (ℕ₊₁→ℤ (snd b)))) (sym (ℤ→Fpreserves· pof (fst b) (ℕ₊₁→ℤ (snd a))))) (lemma1 a b fa≡fb))
+
+-- transport (cong₂ (λ x y → x ≡ y) (IsPseudoOrderedField.·Assoc pof (ℚ'→F pof (numa , dena)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb))) (IsPseudoOrderedField.·Assoc pof (ℚ'→F pof (numb , denb)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)))) (cong₂ (λ x y → x ∙ y) fa≡fb (IsPseudoOrderedField.·Comm pof (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ dena)) (ℕ→F 0f 1f _+_ (ℕ₊₁→ℕ denb))))
+
+-- cong (λ x → (ℤ→F 0f 1f _+_ - numa ∙ x))  

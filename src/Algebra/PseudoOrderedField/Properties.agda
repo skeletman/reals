@@ -79,3 +79,6 @@ addIsOrderCompatible {_<_ = _<_} {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_}
         isGroup : IsGroup 0f _+_ -
         isGroup = isgroup (ismonoid isSemigroup identity) inverse
     in rec (λ -1<0 → transport (cong₂ (λ a b → a < b) (snd (inverse 1f)) (snd (identity 1f))) (addIsOrderCompatible isPOF -1<0 1f)) (λ 0<-1 → transport (cong₂ (λ a b → a < b) (zeroAbsorbsR isRing (- 1f)) (trans (sym (-x≡-1x isRing (- 1f))) (-[-x]≡x isGroup 1f))) (multiplicationByPositivePreservesOrder 0<-1 0<-1)) (-1#0 isCF)
+
+-1<0 : {/ : (x : F) → <→# _<_ x 0f → F} → IsPseudoOrderedField _<_ 0f 1f _+_ _∙_ (-) (/) → - 1f < 0f
+-1<0 {_<_ = _<_} {0f = 0f} {1f = 1f} {_+_ = _+_} {_∙_ = _∙_} { - = - } {/ = /} pof = rec (λ z → z) (λ 0<-1 → rec⊥ (IsPseudoOrderedField.<isAsym pof 1f 0f ((transport (cong₂ (λ x y → x < y) (IsPseudoOrderedField.+Lid pof 1f) (IsPseudoOrderedField.+Linv pof 1f)) (addIsOrderCompatible pof 0<-1 1f)) , 0<1 pof))) (-1#0 (IsPseudoOrderedField.isConstructiveField pof))
